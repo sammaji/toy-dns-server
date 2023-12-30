@@ -1,0 +1,17 @@
+{
+  "name": "codecrafters-dns-server-javascript",
+  "version": "1.0.0",
+  "description": "[![progress-banner](https://backend.codecrafters.io/progress/dns-server/e6b5142b-f443-47cb-8943-0ebe2b4a6a29)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)",
+  "main": "app/main.js",
+  "scripts": {
+    "test:ec": "echo \"hello world\" | nc -u 127.0.0.1 2053",
+    "test": "dig @127.0.0.1 -p 2053 +noedns codecrafters.io",
+    "format": "prettier --write \"app/**/*.js\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.10.6"
+  }
+}
