@@ -4,6 +4,8 @@ const {
   createQuestionBuf,
   createAnswerBuf,
   readHeaderBuf,
+  readQuestionBuffer,
+  readAnswerBuffer,
 } = require("./buf");
 
 const log = (msg) => () => console.log(msg);
@@ -19,20 +21,28 @@ udpSocket.bind(2053, "127.0.0.1", log(">> bind complete"));
 // that sent the message, like its address and port
 udpSocket.on("message", (msg, rinfo) => {
   try {
-    const parsedMsg = readHeaderBuf(msg)
+    const parsedMsgHeader = readHeaderBuf(msg);
+    const parsedMsgQuestion = readQuestionBuffer(msg);
+    // const parsedMsgAnswer = readAnswerBuffer(msg, 12 + parsedMsgQuestion.name.length + 6);
+
     console.log(">> UDP packet recieved!");
-    console.log(parsedMsg)
+    console.log("--- Header Section ---");
+    console.log(parsedMsgHeader);
+    console.log("--- Question Section ---");
+    console.log(parsedMsgQuestion);
+    // console.log("--- Answer Section ---");
+    // console.log(parsedMsgAnswer);
 
     const headerBuf = createHeaderBuf({
-      id: parsedMsg.id,
+      id: parsedMsgHeader.id,
       qr: 1,
-      opcode: parsedMsg.opcode,
+      opcode: parsedMsgHeader.opcode,
       aa: 0,
       tc: 0,
-      rd: parsedMsg.rd,
+      rd: parsedMsgHeader.rd,
       ra: 0,
       z: 0,
-      rcode: parsedMsg.opcode === 0 ? 0 : 4,
+      rcode: parsedMsgHeader.opcode === 0 ? 0 : 4,
       qdcount: 1,
       ancount: 1,
       nscount: 0,
@@ -40,12 +50,12 @@ udpSocket.on("message", (msg, rinfo) => {
     });
 
     const questionBuf = createQuestionBuf({
-      name: "codecrafters.io",
+      name: parsedMsgQuestion.name,
       type: 1,
       cls: 1,
     });
     const ansBuf = createAnswerBuf({
-      name: "codecrafters.io",
+      name: parsedMsgQuestion.name,
       type: 1,
       cls: 1,
       ttl: 60,

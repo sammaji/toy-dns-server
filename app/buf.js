@@ -1,3 +1,11 @@
+const {
+  encodeName,
+  encodeIPv4,
+  decodeName,
+  decodeIPv4,
+  readflags,
+} = require("./utils");
+
 const createHeaderBuf = ({
   id,
   qr = 1,
@@ -41,20 +49,17 @@ const createHeaderBuf = ({
   return buf;
 };
 
-
 const readHeaderBuf = (buf) => {
-  const headerBuf = buf.subarray(0, 12)
-  const id = headerBuf.readUInt16BE(0)
-  const flags = readflags(headerBuf.readUInt16BE(2))
+  const id = buf.readUInt16BE(0);
+  const flags = readflags(buf.readUInt16BE(2));
 
-  const qdcount = headerBuf.readUint16BE(4)
-  const ancount = headerBuf.readUint16BE(6)
-  const nscount = headerBuf.readUint16BE(8)
-  const arcount = headerBuf.readUint16BE(10)
+  const qdcount = buf.readUint16BE(4);
+  const ancount = buf.readUint16BE(6);
+  const nscount = buf.readUint16BE(8);
+  const arcount = buf.readUint16BE(10);
 
-  return {id, ...flags, qdcount, ancount, nscount, arcount}
-}
-
+  return { id, ...flags, qdcount, ancount, nscount, arcount };
+};
 
 const createQuestionBuf = ({ name, type, cls }) => {
   const nameBuf = encodeName(name);
@@ -67,6 +72,18 @@ const createQuestionBuf = ({ name, type, cls }) => {
   questionBuf.writeUInt16BE(cls, nameBuf.length + 2);
 
   return questionBuf;
+};
+
+const readQuestionBuffer = (buf, start = 12) => {
+  const name = decodeName(buf, start);
+  const type = buf.readUInt16BE(start + name.length + 2);
+  const cls = buf.readUInt16BE(start + name.length + 4);
+  return { name, type, cls };
+};
+
+const readAnswerBuffer = (buf, start) => {
+  const name = decodeName(buf, start);
+  return { name };
 };
 
 /**
@@ -94,46 +111,11 @@ const createAnswerBuf = ({ name, type, cls, ttl, length, rdata }) => {
   return ansBuf;
 };
 
-/**
- * Domain name is split into labels, eg in google.com, there are two labels: google, com.
- *
- * For each label, we first append size of the buffer followed by content, then null byte.
- * eg, google becomes \x06google\x00.
- */
-const encodeName = (name) => {
-  const labels = name.split(".");
-  const nameBuf = Buffer.alloc(name.length + 2);
-  let offset = 0;
-  labels.forEach((label) => {
-    if (!label) return;
-
-    nameBuf.writeUInt8(label.length, offset++);
-    nameBuf.write(label, offset);
-    offset += label.length;
-  });
-
-  return nameBuf;
+module.exports = {
+  createHeaderBuf,
+  createQuestionBuf,
+  createAnswerBuf,
+  readHeaderBuf,
+  readQuestionBuffer,
+  readAnswerBuffer,
 };
-
-const encodeIPv4 = (addr) => {
-  const seg = addr.split(".");
-  const ipBuf = Buffer.alloc(4);
-
-  let offset = 0;
-  seg.forEach((x) => ipBuf.writeUInt8(parseInt(x), offset++));
-  return ipBuf;
-};
-
-const readflags = (flags) => {
-  const qr = (flags >> 15) & 0b1;
-  const opcode = (flags >> 11) & 0b1111;
-  const aa = (flags >> 10) & 0b1;
-  const tc = (flags >> 9) & 0b1;
-  const rd = (flags >> 8) & 0b1;
-  const ra = (flags >> 7) & 0b1;
-  const z = (flags >> 4) & 0b111;
-  const rcode = flags & 0b1111;
-  return { qr, opcode, aa, tc, rd, ra, z, rcode };
-};
-
-module.exports = { createHeaderBuf, createQuestionBuf, createAnswerBuf, readHeaderBuf };
