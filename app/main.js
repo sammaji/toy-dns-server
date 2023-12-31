@@ -1,5 +1,5 @@
 const dgram = require("dgram");
-const { createHeaderBuf } = require("./buf");
+const { createHeaderBuf, createQuestionBuf } = require("./buf");
 
 const log = (msg) => () => console.log(msg);
 
@@ -17,7 +17,7 @@ udpSocket.on("message", (msg, rinfo) => {
     console.log(">> UDP packet recieved!");
     console.log(msg.toString());
 
-    const response = createHeaderBuf({
+    const headerBuf = createHeaderBuf({
       id: 1234,
       qr: 1,
       opcode: 0,
@@ -27,11 +27,16 @@ udpSocket.on("message", (msg, rinfo) => {
       ra: 0,
       z: 0,
       rcode: 0,
-      qdcount: 0,
+      qdcount: 1,
       ancount: 0,
       nscount: 0,
       arcount: 0,
     });
+
+    const questionBuf = createQuestionBuf({name: "codecrafters.io", type: 1, cls: 1})
+
+    const response = Buffer.concat([headerBuf, questionBuf])
+
     udpSocket.send(
       response,
       rinfo.port,

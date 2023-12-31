@@ -41,4 +41,32 @@ const createHeaderBuf = ({
   return buf;
 };
 
-module.exports = { createHeaderBuf };
+const createQuestionBuf = ({ name, type, cls }) => {
+  
+  // encoding the name buffer
+  // domain name is split into labels, eg in google.com, there are two labels: google, com
+  // for each label, we first append size of the buffer followed by content, then null byte
+  // eg, google becomes \x06google\x00
+  const labels = name.split(".");
+  const nameBuf = Buffer.alloc(name.length + 2);
+  let offset = 0;
+  labels.forEach((label) => {
+    if (!label) return;
+
+    nameBuf.writeUInt8(label.length, offset++);
+    nameBuf.write(label, offset);
+    offset += label.length;
+  });
+  
+  const questionBuf = Buffer.alloc(nameBuf.length + 2 + 2);
+
+  // copy name buffer into the start of question buffer
+  nameBuf.copy(questionBuf)
+
+  questionBuf.writeUInt16BE(type, nameBuf.length);
+  questionBuf.writeUInt16BE(cls, nameBuf.length + 2);
+
+  return questionBuf
+};
+
+module.exports = { createHeaderBuf, createQuestionBuf };
