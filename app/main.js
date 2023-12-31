@@ -1,5 +1,5 @@
 const dgram = require("dgram");
-const { createHeaderBuf, createQuestionBuf } = require("./buf");
+const { createHeaderBuf, createQuestionBuf, createAnswerBuf } = require("./buf");
 
 const log = (msg) => () => console.log(msg);
 
@@ -28,14 +28,15 @@ udpSocket.on("message", (msg, rinfo) => {
       z: 0,
       rcode: 0,
       qdcount: 1,
-      ancount: 0,
+      ancount: 1,
       nscount: 0,
       arcount: 0,
     });
 
     const questionBuf = createQuestionBuf({name: "codecrafters.io", type: 1, cls: 1})
+    const ansBuf = createAnswerBuf({name: "codecrafters.io", type: 1, cls: 1, ttl: 60, length: 4, rdata: "8.8.8.8"})
 
-    const response = Buffer.concat([headerBuf, questionBuf])
+    const response = Buffer.concat([headerBuf, questionBuf, ansBuf])
 
     udpSocket.send(
       response,
