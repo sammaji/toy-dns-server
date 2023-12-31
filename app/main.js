@@ -1,5 +1,10 @@
 const dgram = require("dgram");
-const { createHeaderBuf, createQuestionBuf, createAnswerBuf } = require("./buf");
+const {
+  createHeaderBuf,
+  createQuestionBuf,
+  createAnswerBuf,
+  readHeaderBuf,
+} = require("./buf");
 
 const log = (msg) => () => console.log(msg);
 
@@ -14,29 +19,41 @@ udpSocket.bind(2053, "127.0.0.1", log(">> bind complete"));
 // that sent the message, like its address and port
 udpSocket.on("message", (msg, rinfo) => {
   try {
+    const parsedMsg = readHeaderBuf(msg)
     console.log(">> UDP packet recieved!");
-    console.log(msg.toString());
+    console.log(parsedMsg)
 
     const headerBuf = createHeaderBuf({
-      id: 1234,
+      id: parsedMsg.id,
       qr: 1,
-      opcode: 0,
+      opcode: parsedMsg.opcode,
       aa: 0,
       tc: 0,
-      rd: 0,
+      rd: parsedMsg.rd,
       ra: 0,
       z: 0,
-      rcode: 0,
+      rcode: parsedMsg.opcode === 0 ? 0 : 4,
       qdcount: 1,
       ancount: 1,
       nscount: 0,
       arcount: 0,
     });
 
-    const questionBuf = createQuestionBuf({name: "codecrafters.io", type: 1, cls: 1})
-    const ansBuf = createAnswerBuf({name: "codecrafters.io", type: 1, cls: 1, ttl: 60, length: 4, rdata: "8.8.8.8"})
+    const questionBuf = createQuestionBuf({
+      name: "codecrafters.io",
+      type: 1,
+      cls: 1,
+    });
+    const ansBuf = createAnswerBuf({
+      name: "codecrafters.io",
+      type: 1,
+      cls: 1,
+      ttl: 60,
+      length: 4,
+      rdata: "8.8.8.8",
+    });
 
-    const response = Buffer.concat([headerBuf, questionBuf, ansBuf])
+    const response = Buffer.concat([headerBuf, questionBuf, ansBuf]);
 
     udpSocket.send(
       response,

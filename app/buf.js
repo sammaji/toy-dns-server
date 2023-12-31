@@ -41,47 +41,62 @@ const createHeaderBuf = ({
   return buf;
 };
 
-const createQuestionBuf = ({ name, type, cls }) => {  
-  const nameBuf = encodeName(name)
+
+const readHeaderBuf = (buf) => {
+  const headerBuf = buf.subarray(0, 12)
+  const id = headerBuf.readUInt16BE(0)
+  const flags = readflags(headerBuf.readUInt16BE(2))
+
+  const qdcount = headerBuf.readUint16BE(4)
+  const ancount = headerBuf.readUint16BE(6)
+  const nscount = headerBuf.readUint16BE(8)
+  const arcount = headerBuf.readUint16BE(10)
+
+  return {id, ...flags, qdcount, ancount, nscount, arcount}
+}
+
+
+const createQuestionBuf = ({ name, type, cls }) => {
+  const nameBuf = encodeName(name);
   const questionBuf = Buffer.alloc(nameBuf.length + 2 + 2);
 
   // copy name buffer into the start of question buffer
-  nameBuf.copy(questionBuf)
+  nameBuf.copy(questionBuf);
 
   questionBuf.writeUInt16BE(type, nameBuf.length);
   questionBuf.writeUInt16BE(cls, nameBuf.length + 2);
 
-  return questionBuf
+  return questionBuf;
 };
 
 /**
- * @param {*} length since rdata is of variable length, 
+ * @param {*} length since rdata is of variable length,
  * we need a length property to specify the length of the rdata
- * 
+ *
  * @param {*} rdata Variable length data specific to the record type
- * (for an A record, its the IPv4 address). 
+ * (for an A record, its the IPv4 address).
  */
-const createAnswerBuf = ({name, type, cls, ttl, length, rdata}) => {
-  const nameBuf = encodeName(name)
-  const ansBuf = Buffer.alloc(nameBuf.length + 2 + 2 + 4 + 2 + 4)
-  
-  nameBuf.copy(ansBuf)
+const createAnswerBuf = ({ name, type, cls, ttl, length, rdata }) => {
+  const nameBuf = encodeName(name);
+  const ansBuf = Buffer.alloc(nameBuf.length + 2 + 2 + 4 + 2 + 4);
 
-  ansBuf.writeUInt16BE(type, nameBuf.length)
-  ansBuf.writeUInt16BE(cls, nameBuf.length + 2)
-  ansBuf.writeUInt16BE(ttl, nameBuf.length + 2 + 2)
-  ansBuf.writeUInt16BE(length, nameBuf.length + 2 + 2 + 4)
+  nameBuf.copy(ansBuf);
+
+  ansBuf.writeUInt16BE(type, nameBuf.length);
+  ansBuf.writeUInt16BE(cls, nameBuf.length + 2);
+  ansBuf.writeUInt16BE(ttl, nameBuf.length + 2 + 2);
+  ansBuf.writeUInt16BE(length, nameBuf.length + 2 + 2 + 4);
 
   // only expecting A records.
   // hence, rdata is a IPv4 address.
-  const rdataBuf = encodeIPv4(rdata)
-  rdataBuf.copy(ansBuf, nameBuf.length + 2 + 2 + 4 + 2)
-  return ansBuf
-}
+  const rdataBuf = encodeIPv4(rdata);
+  rdataBuf.copy(ansBuf, nameBuf.length + 2 + 2 + 4 + 2);
+  return ansBuf;
+};
 
-/** 
+/**
  * Domain name is split into labels, eg in google.com, there are two labels: google, com.
- * 
+ *
  * For each label, we first append size of the buffer followed by content, then null byte.
  * eg, google becomes \x06google\x00.
  */
@@ -97,16 +112,28 @@ const encodeName = (name) => {
     offset += label.length;
   });
 
-  return nameBuf
-}
+  return nameBuf;
+};
 
 const encodeIPv4 = (addr) => {
-  const seg = addr.split(".")
-  const ipBuf = Buffer.alloc(4)
+  const seg = addr.split(".");
+  const ipBuf = Buffer.alloc(4);
 
-  let offset = 0
-  seg.forEach(x => ipBuf.writeUInt8(parseInt(x), offset++))
-  return ipBuf
-}
+  let offset = 0;
+  seg.forEach((x) => ipBuf.writeUInt8(parseInt(x), offset++));
+  return ipBuf;
+};
 
-module.exports = { createHeaderBuf, createQuestionBuf, createAnswerBuf };
+const readflags = (flags) => {
+  const qr = (flags >> 15) & 0b1;
+  const opcode = (flags >> 11) & 0b1111;
+  const aa = (flags >> 10) & 0b1;
+  const tc = (flags >> 9) & 0b1;
+  const rd = (flags >> 8) & 0b1;
+  const ra = (flags >> 7) & 0b1;
+  const z = (flags >> 4) & 0b111;
+  const rcode = flags & 0b1111;
+  return { qr, opcode, aa, tc, rd, ra, z, rcode };
+};
+
+module.exports = { createHeaderBuf, createQuestionBuf, createAnswerBuf, readHeaderBuf };
