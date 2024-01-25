@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+      "target": "ESNext",
+      "lib": ["ESNext"],
+      "module": "ES2020",
+      "resolveJsonModule": false,
+      "strict": true,
+      "strictNullChecks": true,
+      "esModuleInterop": true,
+      "allowSyntheticDefaultImports": true,
+      "skipDefaultLibCheck": true,
+      "skipLibCheck": true,
+      "outDir": "dist",
+    }
+  }

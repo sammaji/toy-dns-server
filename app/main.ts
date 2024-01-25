@@ -1,37 +1,39 @@
-const dgram = require("dgram");
-const {
+import dgram, { RemoteInfo } from "node:dgram";
+import {
+  createAnswerBuf,
   createHeaderBuf,
   createQuestionBuf,
-  createAnswerBuf,
+  readAnswerBuf,
   readHeaderBuf,
-  readQuestionBuffer,
-  readAnswerBuffer,
-} = require("./buf");
+  readQuestionBuf,
+} from "./buf.js";
+import BufferReader from "./buffer-reader.js";
 
-const log = (msg) => () => console.log(msg);
+const log = (msg: string | object) => () => console.log(msg);
 
 // You can use print statements as follows for debugging, they'll be visible when running tests.
 console.log("Logs from your program will appear here!");
 
 const udpSocket = dgram.createSocket("udp4");
-udpSocket.bind(2053, "127.0.0.1", log(">> bind complete"));
+udpSocket.bind(2053, "127.0.0.1", log(">> Bind complete"));
 
 // rinfo is the remote info
 // containing information about the server
 // that sent the message, like its address and port
-udpSocket.on("message", (msg, rinfo) => {
+udpSocket.on("message", (msg: Buffer, rinfo: RemoteInfo) => {
   try {
-    const parsedMsgHeader = readHeaderBuf(msg);
-    const parsedMsgQuestion = readQuestionBuffer(msg);
-    // const parsedMsgAnswer = readAnswerBuffer(msg, 12 + parsedMsgQuestion.name.length + 6);
+    const reader = new BufferReader(msg);
+    const parsedMsgHeader = readHeaderBuf(reader);
+    const parsedMsgQuestion = readQuestionBuf(reader);
+    const parsedMsgAnswer = readAnswerBuf(reader);
 
     console.log(">> UDP packet recieved!");
     console.log("--- Header Section ---");
     console.log(parsedMsgHeader);
     console.log("--- Question Section ---");
     console.log(parsedMsgQuestion);
-    // console.log("--- Answer Section ---");
-    // console.log(parsedMsgAnswer);
+    console.log("--- Answer Section ---");
+    console.log(parsedMsgAnswer);
 
     const headerBuf = createHeaderBuf({
       id: parsedMsgHeader.id,
@@ -49,21 +51,21 @@ udpSocket.on("message", (msg, rinfo) => {
       arcount: 0,
     });
 
-    const questionBuf = createQuestionBuf({
-      name: parsedMsgQuestion.name,
-      type: 1,
-      cls: 1,
-    });
-    const ansBuf = createAnswerBuf({
-      name: parsedMsgQuestion.name,
-      type: 1,
-      cls: 1,
-      ttl: 60,
-      length: 4,
-      rdata: "8.8.8.8",
-    });
+    // const questionBuf = createQuestionBuf({
+    //   name: parsedMsgQuestion.name,
+    //   type: 1,
+    //   cls: 1,
+    // });
+    // const ansBuf = createAnswerBuf({
+    //   name: parsedMsgQuestion.name,
+    //   type: 1,
+    //   cls: 1,
+    //   ttl: 60,
+    //   length: 4,
+    //   rdata: "8.8.8.8",
+    // });
 
-    const response = Buffer.concat([headerBuf, questionBuf, ansBuf]);
+    const response = Buffer.concat([headerBuf]);
 
     udpSocket.send(
       response,

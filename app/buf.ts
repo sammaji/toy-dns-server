@@ -1,12 +1,13 @@
-const {
-  encodeName,
-  encodeIPv4,
-  decodeName,
+import BufferReader from "./buffer-reader.js";
+import {
   decodeIPv4,
+  decodeName,
+  encodeIPv4,
+  encodeName,
   readflags,
-} = require("./utils");
+} from "./utils.js";
 
-const createHeaderBuf = ({
+export const createHeaderBuf = ({
   id,
   qr = 1,
   opcode = 0,
@@ -20,7 +21,7 @@ const createHeaderBuf = ({
   ancount = 0,
   nscount = 0,
   arcount = 0,
-}) => {
+}: HeaderParams) => {
   const buf = Buffer.alloc(12);
 
   buf.writeUInt16BE(id, 0);
@@ -49,19 +50,19 @@ const createHeaderBuf = ({
   return buf;
 };
 
-const readHeaderBuf = (buf) => {
-  const id = buf.readUInt16BE(0);
-  const flags = readflags(buf.readUInt16BE(2));
+export const readHeaderBuf = (reader: BufferReader) => {
+  const id = reader.readUInt16BE();
+  const flags = readflags(reader.readUInt16BE());
 
-  const qdcount = buf.readUint16BE(4);
-  const ancount = buf.readUint16BE(6);
-  const nscount = buf.readUint16BE(8);
-  const arcount = buf.readUint16BE(10);
+  const qdcount = reader.readUInt16BE();
+  const ancount = reader.readUInt16BE();
+  const nscount = reader.readUInt16BE();
+  const arcount = reader.readUInt16BE();
 
   return { id, ...flags, qdcount, ancount, nscount, arcount };
 };
 
-const createQuestionBuf = ({ name, type, cls }) => {
+export const createQuestionBuf = ({ name, type, cls }: QuestionParams) => {
   const nameBuf = encodeName(name);
   const questionBuf = Buffer.alloc(nameBuf.length + 2 + 2);
 
@@ -74,16 +75,19 @@ const createQuestionBuf = ({ name, type, cls }) => {
   return questionBuf;
 };
 
-const readQuestionBuffer = (buf, start = 12) => {
-  const name = decodeName(buf, start);
-  const type = buf.readUInt16BE(start + name.length + 2);
-  const cls = buf.readUInt16BE(start + name.length + 4);
+export const readQuestionBuf = (reader: BufferReader): QuestionParams => {
+  const name = decodeName(reader);
+  const type = reader.readUInt16BE();
+  const cls = reader.readUInt16BE();
   return { name, type, cls };
 };
 
-const readAnswerBuffer = (buf, start) => {
-  const name = decodeName(buf, start);
-  return { name };
+export const readAnswerBuf = (reader: BufferReader): AnswerParams => {
+  const query = readQuestionBuf(reader);
+  const ttl = reader.readUInt32BE();
+  const length = reader.readUInt16BE();
+  const rdata = decodeIPv4(reader);
+  return { ...query, ttl, length, rdata };
 };
 
 /**
@@ -93,7 +97,14 @@ const readAnswerBuffer = (buf, start) => {
  * @param {*} rdata Variable length data specific to the record type
  * (for an A record, its the IPv4 address).
  */
-const createAnswerBuf = ({ name, type, cls, ttl, length, rdata }) => {
+export const createAnswerBuf = ({
+  name,
+  type,
+  cls,
+  ttl,
+  length,
+  rdata,
+}: AnswerParams) => {
   const nameBuf = encodeName(name);
   const ansBuf = Buffer.alloc(nameBuf.length + 2 + 2 + 4 + 2 + 4);
 
@@ -109,13 +120,4 @@ const createAnswerBuf = ({ name, type, cls, ttl, length, rdata }) => {
   const rdataBuf = encodeIPv4(rdata);
   rdataBuf.copy(ansBuf, nameBuf.length + 2 + 2 + 4 + 2);
   return ansBuf;
-};
-
-module.exports = {
-  createHeaderBuf,
-  createQuestionBuf,
-  createAnswerBuf,
-  readHeaderBuf,
-  readQuestionBuffer,
-  readAnswerBuffer,
 };
