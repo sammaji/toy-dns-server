@@ -116,7 +116,10 @@ export const createAnswerBuf = ({
 
   ansBuf.writeUInt16BE(type, nameBuf.length);
   ansBuf.writeUInt16BE(cls, nameBuf.length + 2);
-  ansBuf.writeUInt16BE(ttl, nameBuf.length + 2 + 2);
+  
+  // ttl is *signed* 32 byte int
+  ansBuf.writeInt32BE(ttl, nameBuf.length + 2 + 2);
+  
   ansBuf.writeUInt16BE(length, nameBuf.length + 2 + 2 + 4);
 
   // only expecting A records.

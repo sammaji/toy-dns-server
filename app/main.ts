@@ -8,6 +8,7 @@ import {
   readQuestionBuf,
 } from "./buf.js";
 import BufferReader from "./buffer-reader.js";
+import { buffer } from "stream/consumers";
 
 const log = (msg: string | object) => () => console.log(msg);
 
@@ -25,18 +26,20 @@ udpSocket.on("message", (msg: Buffer, rinfo: RemoteInfo) => {
     const reader = new BufferReader(msg);
     const parsedMsgHeader = readHeaderBuf(reader);
 
-    // for (let i=0; i<parsedMsgHeader.aa)
+    let parsedMsgQuestion: QuestionParams[] = [];
+    for (let i=0; i<parsedMsgHeader.qdcount; i++) {
+      parsedMsgQuestion.push(readQuestionBuf(reader))
+    }
 
-    // let parsedMsgQuestion: QuestionParams[] = readQuestionBuf(reader);
-    // const parsedMsgAnswer = readAnswerBuf(reader);
+    // let parsedMsgAnswer: AnswerParams[] = []
+    // for (let i=0; i<parsedMsgHeader.ancount; i++) {
+    //   parsedMsgAnswer.push(readAnswerBuf(reader))
+    // }
 
     console.log(">> UDP packet recieved!");
-    console.log("--- Header Section ---");
     console.log(parsedMsgHeader);
-    // console.log("--- Question Section ---");
-    // console.log(parsedMsgQuestion);
-    // console.log("--- Answer Section ---");
-    // console.log(parsedMsgAnswer);
+    console.table(parsedMsgQuestion)
+    // console.table(parsedMsgAnswer)
 
     const headerBuf = createHeaderBuf({
       id: parsedMsgHeader.id,
@@ -54,21 +57,18 @@ udpSocket.on("message", (msg: Buffer, rinfo: RemoteInfo) => {
       arcount: 0,
     });
 
-    // const questionBuf = createQuestionBuf({
-    //   name: parsedMsgQuestion.name,
-    //   type: 1,
-    //   cls: 1,
-    // });
-    // const ansBuf = createAnswerBuf({
-    //   name: parsedMsgQuestion.name,
-    //   type: 1,
-    //   cls: 1,
-    //   ttl: 60,
-    //   length: 4,
-    //   rdata: "8.8.8.8",
-    // });
+    const qnBuf = parsedMsgQuestion.map((question) => createQuestionBuf(question))
 
-    const response = Buffer.concat([headerBuf]);
+    const ansBuf = parsedMsgQuestion.map((question) => {
+      return createAnswerBuf({
+        ...question,
+        ttl: 60,
+        length: 4,
+        rdata: "8.8.8.77",
+      });
+    })
+
+    const response = Buffer.concat([headerBuf, ...qnBuf, ...ansBuf]);
 
     udpSocket.send(
       response,
