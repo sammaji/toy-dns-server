@@ -1,13 +1,12 @@
 {
-  "name": "codecrafters-dns-server-javascript",
+  "name": "toy-dns-server",
   "version": "1.0.0",
-  "description": "[![progress-banner](https://backend.codecrafters.io/progress/dns-server/e6b5142b-f443-47cb-8943-0ebe2b4a6a29)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)",
-  "main": "app/main.js",
+  "main": "dist/main.js",
   "type": "module",
   "types": "app/index.d.ts",
   "scripts": {
-    "test:ec": "echo \"hello world\" | nc -u 127.0.0.1 2053",
-    "test:cc": "dig @127.0.0.1 -p 2053 +noedns google.com",
+    "dev": "tsc; node dist/main.js",
+    "query": "dig @127.0.0.1 -p 2053 +noedns google.com",
     "format": "prettier --write \"app/**/*.{js,ts}\""
   },
   "keywords": [],

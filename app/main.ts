@@ -64,7 +64,7 @@ udpSocket.on("message", (msg: Buffer, rinfo: RemoteInfo) => {
         ...question,
         ttl: 60,
         length: 4,
-        rdata: "8.8.8.77",
+        rdata: "8.8.8.8",
       });
     })
 
