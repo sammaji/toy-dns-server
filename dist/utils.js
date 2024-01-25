@@ -18,22 +18,43 @@ export const encodeName = (name) => {
     return nameBuf;
 };
 export const decodeName = (reader) => {
-    let labels = [];
-    while (reader.length() > 0) {
-        const length = reader.readUInt8();
-        // if we encounter a null byte, we terminate
-        if (length === 0)
-            break;
-        // if there is a jump directive
-        if ((length & 0xc0) === 0xc0) {
-            let b2 = reader.get(reader.position + 1);
-            let offset = ((length ^ 0xC0) << 8) | b2;
-            reader.seek(offset);
-            continue;
+    let pos = reader.position;
+    let jumped = false;
+    let max_jumps = 5;
+    let jumps_performed = 0;
+    let delim = "";
+    let outstr = "";
+    while (true) {
+        if (jumps_performed > max_jumps) {
+            throw new Error(`Limit of ${max_jumps} jumps exceeded.`);
         }
-        labels.push(reader.readStrN(length));
+        let len = reader.get(pos);
+        if ((len & 0xC0) == 0xC0) {
+            if (!jumped) {
+                reader.seek(pos + 2);
+            }
+            let b2 = reader.get(pos + 1);
+            let offset = ((len ^ 0xC0) << 8) | b2;
+            console.log(offset);
+            pos = offset;
+            jumped = true;
+            jumps_performed++;
+        }
+        else {
+            pos++;
+            if (len == 0) {
+                break;
+            }
+            const s = reader.buffer.toString("utf8", pos, pos + len);
+            outstr += delim + s;
+            delim = ".";
+            pos += len;
+        }
     }
-    return labels.join(".");
+    if (!jumped) {
+        reader.seek(pos);
+    }
+    return outstr;
 };
 export const encodeIPv4 = (addr) => {
     const seg = addr.split(".");

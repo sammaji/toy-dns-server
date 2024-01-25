@@ -1,5 +1,5 @@
 import dgram from "node:dgram";
-import { createHeaderBuf, readAnswerBuf, readHeaderBuf, readQuestionBuf, } from "./buf.js";
+import { createHeaderBuf, readHeaderBuf, } from "./buf.js";
 import BufferReader from "./buffer-reader.js";
 const log = (msg) => () => console.log(msg);
 // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -13,15 +13,16 @@ udpSocket.on("message", (msg, rinfo) => {
     try {
         const reader = new BufferReader(msg);
         const parsedMsgHeader = readHeaderBuf(reader);
-        const parsedMsgQuestion = readQuestionBuf(reader);
-        const parsedMsgAnswer = readAnswerBuf(reader);
+        // for (let i=0; i<parsedMsgHeader.aa)
+        // let parsedMsgQuestion: QuestionParams[] = readQuestionBuf(reader);
+        // const parsedMsgAnswer = readAnswerBuf(reader);
         console.log(">> UDP packet recieved!");
         console.log("--- Header Section ---");
         console.log(parsedMsgHeader);
-        console.log("--- Question Section ---");
-        console.log(parsedMsgQuestion);
-        console.log("--- Answer Section ---");
-        console.log(parsedMsgAnswer);
+        // console.log("--- Question Section ---");
+        // console.log(parsedMsgQuestion);
+        // console.log("--- Answer Section ---");
+        // console.log(parsedMsgAnswer);
         const headerBuf = createHeaderBuf({
             id: parsedMsgHeader.id,
             qr: 1,

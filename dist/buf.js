@@ -48,7 +48,9 @@ export const readQuestionBuf = (reader) => {
 };
 export const readAnswerBuf = (reader) => {
     const query = readQuestionBuf(reader);
-    const ttl = reader.readUInt32BE();
+    // time-to-live (ttl) is *signed* 4 byte integer
+    const ttl = reader.buffer.readInt32BE(reader.position);
+    reader.skip(4);
     const length = reader.readUInt16BE();
     const rdata = decodeIPv4(reader);
     return { ...query, ttl, length, rdata };

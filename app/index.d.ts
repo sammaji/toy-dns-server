@@ -1,4 +1,4 @@
-enum Rcode {
+enum ResulCode {
   NOERROR = 0,
   FORMERR = 1,
   SERVFAIL = 2,
@@ -20,7 +20,7 @@ type HeaderFlagParams = {
   rd: number;
   ra: number;
   z: number;
-  rcode: Rcode;
+  rcode: ResulCode;
 };
 
 type HeaderParams = HeaderFlagParams & {
@@ -33,8 +33,12 @@ type HeaderParams = HeaderFlagParams & {
 
 type QuestionParams = { name: string; type: number; cls: number };
 
-type AnswerParams = QuestionParams & {
+type ResponseParams = QuestionParams & {
   ttl: number;
   length: number;
   rdata: string;
 };
+
+type AnswerParams = ResponseParams
+type AuthorityParams = ResponseParams
+type AdditionalParams = ResponseParams

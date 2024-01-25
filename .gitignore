@@ -1,1 +1,8 @@
 node_modules/*
+dist/*
+
+app/i.ts
+app/b.ts
+
+query_packet.txt
+response_packet.txt

@@ -5,6 +5,13 @@ export default class BufferReader {
         this.buffer = buffer;
         this.position = position;
     }
+    isEndOfBuffer(offset = 0) {
+        return this.position + offset >= 512;
+    }
+    throwEndOfBuffer(offset = 0) {
+        if (this.isEndOfBuffer(offset))
+            throw Error("End of Buffer: Packet size is limited to 512 bytes");
+    }
     length() {
         return this.buffer.length - this.position;
     }
@@ -22,7 +29,10 @@ export default class BufferReader {
     }
     /** read a single byte, without changing the buffer */
     get(pos = this.position) {
-        return this.buffer.readUint8();
+        return this.buffer.readUint8(pos);
+    }
+    getRange(start, len) {
+        return this.buffer.toString("utf8", start, start + len);
     }
     readUInt8() {
         const element = this.buffer.readUInt8(this.position);
