@@ -2,7 +2,7 @@
 
 This is a toy dns server I built to learn how a dns server works under the hood, how to read UDP packets, what is recursive resolve, etc.
 
-[Demo](./assets/demo.gif)
+![Demo](./assets/demo.gif)
 
 ## Usage
 
