@@ -5,8 +5,7 @@
   "type": "module",
   "types": "app/index.d.ts",
   "scripts": {
-    "dev": "tsc; node dist/main.js",
-    "query": "dig @127.0.0.1 -p 2053 +noedns google.com",
+    "dev": "tsc; node dist/recursive-resolve.js",
     "format": "prettier --write \"app/**/*.{js,ts}\""
   },
   "keywords": [],

@@ -26,8 +26,8 @@ export const readPacket = (reader: BufferReader) => {
   for (let i = 0; i < header.arcount; i++)
     packet.additional.push(readRecord(reader));
 
-    return packet
-}
+  return packet;
+};
 
 export const createHeaderBuf = ({
   id,
