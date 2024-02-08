@@ -12,13 +12,13 @@ export default class BufferReader {
   }
 
   isEndOfBuffer(offset: number = 0) {
-    return this.position + offset >= 512
+    return this.position + offset >= 512;
   }
 
   throwEndOfBuffer(offset: number = 0) {
-    if (this.isEndOfBuffer(offset)) throw Error("End of Buffer: Packet size is limited to 512 bytes");
+    if (this.isEndOfBuffer(offset))
+      throw Error("End of Buffer: Packet size is limited to 512 bytes");
   }
-
 
   /**
    * change the buffer position

@@ -22,56 +22,52 @@ export const encodeName = (name: string) => {
 };
 
 export const decodeName = (reader: BufferReader) => {
-  let pos = reader.position
+  let pos = reader.position;
 
   let jumped = false;
   let max_jumps = 5;
   let jumps_performed = 0;
 
-  let delim = ""
-  let outstr = ""
+  let delim = "";
+  let outstr = "";
 
   while (true) {
     if (jumps_performed > max_jumps) {
-      throw new Error(`Limit of ${max_jumps} jumps exceeded.`)
+      throw new Error(`Limit of ${max_jumps} jumps exceeded.`);
     }
 
-    let len = reader.get(pos)
-    if ((len & 0xC0) == 0xC0) {
+    let len = reader.get(pos);
+    if ((len & 0xc0) == 0xc0) {
       if (!jumped) {
-        reader.seek(pos+2)
+        reader.seek(pos + 2);
       }
 
-      let b2 = reader.get(pos+1)
-      let offset = ((len ^ 0xC0) << 8) | b2
+      let b2 = reader.get(pos + 1);
+      let offset = ((len ^ 0xc0) << 8) | b2;
 
-      console.log(offset)
+      pos = offset;
 
-      pos = offset
-      
-      jumped = true
-      jumps_performed++
-    }
-    else {
+      jumped = true;
+      jumps_performed++;
+    } else {
       pos++;
-      if (len==0) {
-        break
+      if (len == 0) {
+        break;
       }
 
-      const s = reader.buffer.toString("utf8", pos, pos+len);
-      outstr += delim + s
+      const s = reader.buffer.toString("utf8", pos, pos + len);
+      outstr += delim + s;
 
-      delim = "."
-      pos += len
+      delim = ".";
+      pos += len;
     }
   }
 
   if (!jumped) {
-    reader.seek(pos)
+    reader.seek(pos);
   }
 
-
-  return outstr
+  return outstr;
 };
 
 export const encodeIPv4 = (addr: string) => {
@@ -89,7 +85,22 @@ export const decodeIPv4 = (reader: BufferReader) => {
   return seg.join(".");
 };
 
-export const readflags = (flags: number): HeaderFlagParams => {
+export const decodeIPv6 = (reader: BufferReader) => {
+  const segments: number[] = [];
+  for (let i = 0; i < 8; i++) {
+    const segment = reader.readUInt16BE();
+    segments.push(segment);
+  }
+  const ipv6Address = segments
+    .map((segment) => {
+      if (segment === 0) return "";
+      else return segment.toString(16);
+    })
+    .join(":");
+  return ipv6Address;
+};
+
+export const readflags = (flags: number): DnsHeaderFlagParams => {
   const qr = (flags >> 15) & 0b1;
   const opcode = (flags >> 11) & 0b1111;
   const aa = (flags >> 10) & 0b1;

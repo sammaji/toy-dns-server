@@ -1,15 +1,37 @@
 import BufferReader from "./buffer-reader.js";
 import {
   decodeIPv4,
+  decodeIPv6,
   decodeName,
   encodeIPv4,
   encodeName,
   readflags,
 } from "./utils.js";
 
+export const readPacket = (reader: BufferReader) => {
+  const header = readHeaderBuf(reader);
+  const packet: DnsPacket = {
+    header,
+    qn: [],
+    ans: [],
+    authority: [],
+    additional: [],
+  };
+
+  for (let i = 0; i < header.qdcount; i++)
+    packet.qn.push(readQuestionBuf(reader));
+  for (let i = 0; i < header.ancount; i++) packet.ans.push(readRecord(reader));
+  for (let i = 0; i < header.nscount; i++)
+    packet.authority.push(readRecord(reader));
+  for (let i = 0; i < header.arcount; i++)
+    packet.additional.push(readRecord(reader));
+
+    return packet
+}
+
 export const createHeaderBuf = ({
   id,
-  qr = 1,
+  qr = 0,
   opcode = 0,
   aa = 0,
   tc = 0,
@@ -21,7 +43,7 @@ export const createHeaderBuf = ({
   ancount = 0,
   nscount = 0,
   arcount = 0,
-}: HeaderParams) => {
+}: DnsHeader) => {
   const buf = Buffer.alloc(12);
 
   buf.writeUInt16BE(id, 0);
@@ -62,7 +84,7 @@ export const readHeaderBuf = (reader: BufferReader) => {
   return { id, ...flags, qdcount, ancount, nscount, arcount };
 };
 
-export const createQuestionBuf = ({ name, type, cls }: QuestionParams) => {
+export const createQuestionBuf = ({ name, type, cls }: DnsQuestionRecord) => {
   const nameBuf = encodeName(name);
   const questionBuf = Buffer.alloc(nameBuf.length + 2 + 2);
 
@@ -75,22 +97,33 @@ export const createQuestionBuf = ({ name, type, cls }: QuestionParams) => {
   return questionBuf;
 };
 
-export const readQuestionBuf = (reader: BufferReader): QuestionParams => {
+export const readQuestionBuf = (reader: BufferReader): DnsQuestionRecord => {
   const name = decodeName(reader);
   const type = reader.readUInt16BE();
   const cls = reader.readUInt16BE();
   return { name, type, cls };
 };
 
-export const readAnswerBuf = (reader: BufferReader): AnswerParams => {
+export const readRecord = (reader: BufferReader): DnsRecord => {
   const query = readQuestionBuf(reader);
 
   // time-to-live (ttl) is *signed* 4 byte integer
   const ttl = reader.buffer.readInt32BE(reader.position);
-  reader.skip(4)
+  reader.skip(4);
 
   const length = reader.readUInt16BE();
-  const rdata = decodeIPv4(reader);
+  let rdata: string;
+
+  if (query.type === 1) {
+    return { ...query, ttl, length, rdata: decodeIPv4(reader) };
+  }
+
+  if (query.type === 28) {
+    return { ...query, ttl, length, rdata: decodeIPv6(reader) };
+  }
+
+  rdata = decodeName(reader);
+
   return { ...query, ttl, length, rdata };
 };
 
@@ -101,7 +134,7 @@ export const readAnswerBuf = (reader: BufferReader): AnswerParams => {
  * @param {*} rdata Variable length data specific to the record type
  * (for an A record, its the IPv4 address).
  */
-export const createAnswerBuf = ({
+export const createRecordBuf = ({
   name,
   type,
   cls,
@@ -116,10 +149,10 @@ export const createAnswerBuf = ({
 
   ansBuf.writeUInt16BE(type, nameBuf.length);
   ansBuf.writeUInt16BE(cls, nameBuf.length + 2);
-  
+
   // ttl is *signed* 32 byte int
   ansBuf.writeInt32BE(ttl, nameBuf.length + 2 + 2);
-  
+
   ansBuf.writeUInt16BE(length, nameBuf.length + 2 + 2 + 4);
 
   // only expecting A records.

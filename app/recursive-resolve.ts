@@ -17,6 +17,10 @@ const socket = dgram.createSocket("udp4");
 socket.bind();
 
 function recursiveResolve(packet: DnsPacket) {
+
+  console.log(packet)
+  console.log("----")
+
     if (packet.ans.length > 0) {return packet.ans}
 
     const rec = packet.additional.filter(v => v.type === 1)

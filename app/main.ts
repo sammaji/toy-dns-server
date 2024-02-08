@@ -1,9 +1,9 @@
 import dgram, { RemoteInfo } from "node:dgram";
 import {
-  createAnswerBuf,
+  createRecordBuf,
   createHeaderBuf,
   createQuestionBuf,
-  readAnswerBuf,
+  readRecord,
   readHeaderBuf,
   readQuestionBuf,
 } from "./buf.js";
@@ -15,8 +15,8 @@ const log = (msg: string | object) => () => console.log(msg);
 // You can use print statements as follows for debugging, they'll be visible when running tests.
 console.log("Logs from your program will appear here!");
 
-const udpSocket = dgram.createSocket("udp4");
-udpSocket.bind(2053, "127.0.0.1", log(">> Bind complete"));
+const udpSocket = dgram.createSocket({ type: "udp4", reuseAddr: true });
+udpSocket.bind(2053, "0.0.0.0", log(">> Bind complete"));
 
 // rinfo is the remote info
 // containing information about the server
@@ -26,19 +26,19 @@ udpSocket.on("message", (msg: Buffer, rinfo: RemoteInfo) => {
     const reader = new BufferReader(msg);
     const parsedMsgHeader = readHeaderBuf(reader);
 
-    let parsedMsgQuestion: QuestionParams[] = [];
-    for (let i=0; i<parsedMsgHeader.qdcount; i++) {
-      parsedMsgQuestion.push(readQuestionBuf(reader))
+    let parsedMsgQuestion: DnsQuestionRecord[] = [];
+    for (let i = 0; i < parsedMsgHeader.qdcount; i++) {
+      parsedMsgQuestion.push(readQuestionBuf(reader));
     }
 
     // let parsedMsgAnswer: AnswerParams[] = []
     // for (let i=0; i<parsedMsgHeader.ancount; i++) {
-    //   parsedMsgAnswer.push(readAnswerBuf(reader))
+    //   parsedMsgAnswer.push(readRecord(reader))
     // }
 
     console.log(">> UDP packet recieved!");
     console.log(parsedMsgHeader);
-    console.table(parsedMsgQuestion)
+    console.table(parsedMsgQuestion);
     // console.table(parsedMsgAnswer)
 
     const headerBuf = createHeaderBuf({
@@ -57,16 +57,18 @@ udpSocket.on("message", (msg: Buffer, rinfo: RemoteInfo) => {
       arcount: 0,
     });
 
-    const qnBuf = parsedMsgQuestion.map((question) => createQuestionBuf(question))
+    const qnBuf = parsedMsgQuestion.map((question) =>
+      createQuestionBuf(question),
+    );
 
     const ansBuf = parsedMsgQuestion.map((question) => {
-      return createAnswerBuf({
+      return createRecordBuf({
         ...question,
         ttl: 60,
         length: 4,
         rdata: "8.8.8.8",
       });
-    })
+    });
 
     const response = Buffer.concat([headerBuf, ...qnBuf, ...ansBuf]);
 
@@ -82,12 +84,16 @@ udpSocket.on("message", (msg: Buffer, rinfo: RemoteInfo) => {
 });
 
 udpSocket.on("error", (err) => {
+  console.log(err);
   console.log(`>> Error with server: ${err}`);
 });
 
 udpSocket.on("listening", () => {
   const addr = udpSocket.address();
   console.log(`>> Server running on ${addr.address}:${addr.port}`);
+  udpSocket.send("google.com", 53, "1.1.1.1", (err, bytes) => {
+    console.log(err ? err : bytes);
+  });
 });
 
 udpSocket.on("close", () => {
